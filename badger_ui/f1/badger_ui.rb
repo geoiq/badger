@@ -45,9 +45,10 @@ class BadgerUI < javax.swing.JFrame
   
   def actionPerformed(ae)
     @upload_button.setEnabled(false)
-    unless @url_field.getText =~ /^http:\/\/finder\./
-      raise ArgumentError, "URL should be of the form: http://finder.something"
-    end
+    # Let's not be overly strict here. It's causing user's problems
+    # unless @url_field.getText =~ /^http:\/\/finder\./
+    #   raise ArgumentError, "URL should be of the form: http://finder.something"
+    # end
     b = Badger.new(@url_field.getText,
                @login_field.getText,
                @password_field.getText)
