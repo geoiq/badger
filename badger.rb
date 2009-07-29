@@ -8,6 +8,7 @@
 #++
 
 require 'net/http'
+require 'net/https'
 require 'rexml/document'
 require 'uri'
 require 'cgi'
@@ -16,17 +17,30 @@ require 'ostruct'
 require 'yaml'
 require 'multipart'
 
-$finder_path = "http://finder.subie"
+$finder_path = "https://finder.geopdf.dev.fortiusone.local"
 #BATCH_FILE_FORMAT = "kml"
 BATCH_FILE_FORMAT = "shp"
 
 def login( username, password )
   uri = URI.parse($finder_path)
-  res = Net::HTTP.new(uri.host, uri.port).start do |http|
+  res = Net::HTTP.new(uri.host, uri.port)
+  res.use_ssl = (uri.scheme= 'https')
+  post = Net::HTTP::Post.new("/sessions")
+  post.set_form_data( {'login' => username, 'password' => password} )
+#  post.verify_mode = OpenSSL::SSL::VERIFY_NONE
+#  post.use_ssl = (uri.scheme == 'https')
+  
+  res.start do |https|
+#          if File.exist? RootCA
+#           http.ca_file = RootCA
+#           http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+#           http.verify_depth = 5
+#          else
+#          end
+    
     #make the initial get to get the JSESSION cookie
-    post = Net::HTTP::Post.new("/sessions")
-    post.set_form_data( {'login' => username, 'password' => password} )
-    response = http.request(post)
+
+    response = https.request(post)
     case response
     when Net::HTTPFound
       puts "Badger got a cookie (logged in)"
