@@ -1,4 +1,5 @@
 require 'net/http'
+require 'net/https'
 require 'rexml/document'
 require 'uri'
 require 'cgi'
@@ -28,23 +29,36 @@ class Badger
   
   private
   def login( username, password )
-    uri = URI.parse(@finder_path)
-    res = Net::HTTP.new(uri.host, uri.port).start do |http|
+    uri = URI.parse($finder_path)
+    res = Net::HTTP.new(uri.host, uri.port)
+    res.use_ssl = (uri.scheme= 'https')
+    post = Net::HTTP::Post.new("/sessions")
+    post.set_form_data( {'login' => username, 'password' => password} )
+  #  post.verify_mode = OpenSSL::SSL::VERIFY_NONE
+  #  post.use_ssl = (uri.scheme == 'https')
+
+    res.start do |https|
+  #          if File.exist? RootCA
+  #           http.ca_file = RootCA
+  #           http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+  #           http.verify_depth = 5
+  #          else
+  #          end
+
       #make the initial get to get the JSESSION cookie
-      post = Net::HTTP::Post.new("/sessions")
-      post.set_form_data( {'login' => username, 'password' => password} )
-      response = http.request(post)
+
+      response = https.request(post)
       case response
       when Net::HTTPFound
         puts "Badger got a cookie (logged in)"
-        return response.response['set-cookie']  
       else
         puts "No cookies for badger (login failed)"
-        return nil
       end    
       # get original cookie contains _f1gc_session=blahblahblah
+      cookie = response.response['set-cookie']  
     end
   end
+ 
 
   def metadata_params(stem)
     mapping = {"overlay_meta"=>["lineage", "metadata_url", "contact_address", "contact_phone", 
