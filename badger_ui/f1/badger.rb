@@ -50,13 +50,6 @@ class Badger
   #  post.use_ssl = (uri.scheme == 'https')
 
     res.start do |https|
-  #          if File.exist? RootCA
-  #           http.ca_file = RootCA
-  #           http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-  #           http.verify_depth = 5
-  #          else
-  #          end
-
       #make the initial get to get the JSESSION cookie
       response = https.request(post)
       case response
@@ -106,6 +99,8 @@ class Badger
     
     url = URI.parse(resource)
     req = Net::HTTP::Get.new(url.path)
+    req.use_ssl = (url.scheme == 'https')
+    
     req["Cookie"] = cookie
     response = Net::HTTP.new(url.host, url.port).start {|http| http.request(req) }
     
@@ -157,6 +152,7 @@ class Badger
   def upload( query,cookie = nil )
     url = URI.parse(@finder_path)
     req = Net::HTTP::Post.new("/overlays.xml")
+    req.use_ssl = (url.scheme == 'https')    
     req["Cookie"] = cookie  
     req.set_multipart_form_data(query)
     res = Net::HTTP.new(url.host, url.port).start {|http| http.request(req) }
@@ -165,6 +161,7 @@ class Badger
   def upload_metadata(resource, params, cookie=nil)
     url = URI.parse(resource)
     req = Net::HTTP::Put.new(url.path)
+    req.use_ssl = (url.scheme == 'https')    
     req["Cookie"] = cookie
     req.set_form_data(params)
     response = Net::HTTP.new(url.host, url.port).start {|http| http.request(req) }
