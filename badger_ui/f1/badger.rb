@@ -1,4 +1,5 @@
 require 'net/http'
+GEM_ONLY=true
 require 'net/https'
 require 'rexml/document'
 require 'uri'
