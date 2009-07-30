@@ -98,11 +98,12 @@ class Badger
     f.close()
     
     url = URI.parse(resource)
+    res = Net::HTTP.new(url.host, url.port)
+    res.use_ssl = (url.scheme == 'https')
     req = Net::HTTP::Get.new(url.path)
-    req.use_ssl = (url.scheme == 'https')
     
     req["Cookie"] = cookie
-    response = Net::HTTP.new(url.host, url.port).start {|http| http.request(req) }
+    response = res.start {|http| http.request(req) }
     
     current_metadata = REXML::Document.new(response.body)
     
@@ -151,20 +152,23 @@ class Badger
 
   def upload( query,cookie = nil )
     url = URI.parse(@finder_path)
+    res = Net::HTTP.new(url.host, url.port)
+    res.use_ssl = (url.scheme == 'https')
     req = Net::HTTP::Post.new("/overlays.xml")
-    req.use_ssl = (url.scheme == 'https')    
     req["Cookie"] = cookie  
     req.set_multipart_form_data(query)
-    res = Net::HTTP.new(url.host, url.port).start {|http| http.request(req) }
+    res = res.start {|http| http.request(req) }
   end
 
   def upload_metadata(resource, params, cookie=nil)
     url = URI.parse(resource)
+    res = Net::HTTP.new(url.host, url.port)
+    res.use_ssl = (url.scheme == 'https')
+    
     req = Net::HTTP::Put.new(url.path)
-    req.use_ssl = (url.scheme == 'https')    
     req["Cookie"] = cookie
     req.set_form_data(params)
-    response = Net::HTTP.new(url.host, url.port).start {|http| http.request(req) }
+    response = res.start {|http| http.request(req) }
     if response.is_a?(Net::HTTPSuccess) || response.is_a?(Net::HTTPRedirection)
       return response
     else
