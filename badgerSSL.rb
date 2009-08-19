@@ -31,7 +31,7 @@ end
 def login( username, password )
   uri = URI.parse($finder_path)
   res = Net::HTTP.new(uri.host, uri.port)
-  res.use_ssl = (uri.scheme= 'https')
+  res.use_ssl = (uri.scheme == 'https')
   post = Net::HTTP::Post.new("/sessions")
   post.set_form_data( {'login' => username, 'password' => password} )
 #  post.verify_mode = OpenSSL::SSL::VERIFY_NONE
