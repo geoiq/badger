@@ -2,8 +2,8 @@
 
 #--
 # Upload script for Finder!
-# Version 0.1
-# Copyright (c) 2008 Andrew Turner
+# Version 2.0.1 beta
+# Copyright (c) 2008 FortiusOne
 # Copyright (c) 2005 Bill Stilwell (bill@marginalia.org)
 #++
 
@@ -17,9 +17,16 @@ require 'ostruct'
 require 'yaml'
 require 'multipart'
 
-$finder_path = "https://finder.geopdf.dev.fortiusone.local"
-#BATCH_FILE_FORMAT = "kml"
 BATCH_FILE_FORMAT = "shp"
+
+class Net::HTTP
+  alias_method :old_initialize, :initialize
+  def initialize(*args)
+    old_initialize(*args)
+    @ssl_context = OpenSSL::SSL::SSLContext.new
+    @ssl_context.verify_mode = OpenSSL::SSL::VERIFY_NONE
+  end
+end
 
 def login( username, password )
   uri = URI.parse($finder_path)
@@ -54,21 +61,28 @@ end
 
 def upload( query,cookie = nil )
   url = URI.parse($finder_path)
+  res = Net::HTTP.new(url.host, url.port)
+  res.use_ssl = (url.scheme == 'https')
   req = Net::HTTP::Post.new("/overlays.xml")
   req["Cookie"] = cookie  
   req.set_multipart_form_data(query)
-  res = Net::HTTP.new(url.host, url.port).start {|http| http.request(req) }
+  res = res.start {|http| http.request(req) }
 end
 
-
-def metadata(overlay_id, params, cookie = nil )
-  url = URI.parse($finder_path)
-  req = Net::HTTP::Put.new("/overlays/#{overlay_id}.xml")
-  req["Cookie"] = cookie  
+def metadata(resource, params, cookie=nil)
+  url = URI.parse($finder_path+"/overlays/"+resource)
+  res = Net::HTTP.new(url.host, url.port)
+  res.use_ssl = (url.scheme == 'https')
+  req = Net::HTTP::Put.new(url.path)
+  req["Cookie"] = cookie
   req.set_form_data(params)
-  res = Net::HTTP.new(url.host, url.port).start {|http| http.request(req) }
+  res = res.start {|http| http.request(req) }
+  if res.is_a?(Net::HTTPSuccess) || res.is_a?(Net::HTTPRedirection)
+    return res
+  else
+    raise StandardError, "Metadata Fail: #{res.body} for #{resource}"
+  end
 end
-
 
 if __FILE__ == $0
 
@@ -197,27 +211,26 @@ if __FILE__ == $0
       end
 
       tags = REXML::XPath.match(overlay, "//tag/name").collect { |t| t.text }
-      params["overlay[tag_list]"] = tags
-      
+      params["overlay[tag_list]"] = tags.join(",")      
       
     else
       params["overlay[name]"] = options.title if options.title
       params["overlay_meta[description]"] = options.description if options.description
-      params["overlay[tag_list]"] = options.tags.join(" ") if options.tags
+      params["overlay[tag_list]"] = options.tags.join(",") if options.tags
       params["overlay_meta[shared]"] = options.private ? false : true
     end
     
     response = metadata(overlay_id, params, cookie)
 
-    case response
-    when Net::HTTPOK
+#    case response
+#    when Net::HTTPOK
+#      puts "Uploaded! #{ids.last.gsub(/\.xml/,'')}"
+#
+#    else
+
       puts "Uploaded! #{ids.last.gsub(/\.xml/,'')}"
-
-    else
-
-      puts "no files uploaded."
-      puts response.body
-    end
+#      puts response.body
+#    end
   end
 
 
