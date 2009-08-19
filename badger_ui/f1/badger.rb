@@ -9,9 +9,20 @@ require 'yaml'
 require 'open-uri'
 require 'f1/multipart'
 
+class Object
+  def gem(name)
+    puts name
+    require 'jruby/extract'
+    JRuby::Extract.new.extract
+    require 'rubygems'
+    require 'rubygems/gem_runner'
+    Gem.manage_gems
+    Gem::GemRunner.new.run(name)
+  end
+end
 
 class Badger
-  def initialize(finder_path,login,password)
+  def initialize(finder_path,login,password)    
     @finder_path = finder_path
     @login = login
     @password = password
@@ -29,24 +40,17 @@ class Badger
   
   private
   def login( username, password )
-    uri = URI.parse($finder_path)
+    uri = URI.parse(@finder_path)
     res = Net::HTTP.new(uri.host, uri.port)
-    res.use_ssl = (uri.scheme= 'https')
+    res.use_ssl = (uri.scheme == 'https')
     post = Net::HTTP::Post.new("/sessions")
     post.set_form_data( {'login' => username, 'password' => password} )
+    puts "set form"
   #  post.verify_mode = OpenSSL::SSL::VERIFY_NONE
   #  post.use_ssl = (uri.scheme == 'https')
 
     res.start do |https|
-  #          if File.exist? RootCA
-  #           http.ca_file = RootCA
-  #           http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-  #           http.verify_depth = 5
-  #          else
-  #          end
-
       #make the initial get to get the JSESSION cookie
-
       response = https.request(post)
       case response
       when Net::HTTPFound
@@ -94,9 +98,12 @@ class Badger
     f.close()
     
     url = URI.parse(resource)
+    res = Net::HTTP.new(url.host, url.port)
+    res.use_ssl = (url.scheme == 'https')
     req = Net::HTTP::Get.new(url.path)
+    
     req["Cookie"] = cookie
-    response = Net::HTTP.new(url.host, url.port).start {|http| http.request(req) }
+    response = res.start {|http| http.request(req) }
     
     current_metadata = REXML::Document.new(response.body)
     
@@ -145,18 +152,23 @@ class Badger
 
   def upload( query,cookie = nil )
     url = URI.parse(@finder_path)
+    res = Net::HTTP.new(url.host, url.port)
+    res.use_ssl = (url.scheme == 'https')
     req = Net::HTTP::Post.new("/overlays.xml")
     req["Cookie"] = cookie  
     req.set_multipart_form_data(query)
-    res = Net::HTTP.new(url.host, url.port).start {|http| http.request(req) }
+    res = res.start {|http| http.request(req) }
   end
 
   def upload_metadata(resource, params, cookie=nil)
     url = URI.parse(resource)
+    res = Net::HTTP.new(url.host, url.port)
+    res.use_ssl = (url.scheme == 'https')
+    
     req = Net::HTTP::Put.new(url.path)
     req["Cookie"] = cookie
     req.set_form_data(params)
-    response = Net::HTTP.new(url.host, url.port).start {|http| http.request(req) }
+    response = res.start {|http| http.request(req) }
     if response.is_a?(Net::HTTPSuccess) || response.is_a?(Net::HTTPRedirection)
       return response
     else
