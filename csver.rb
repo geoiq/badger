@@ -53,6 +53,8 @@ def download_and_extract(id)
   system "curl #{url_xml} -o #{directory}#{id}.xml"
 rescue Zip::ZipError
   puts "Warning: Overlay #{id} was not valid"
+rescue Exception => e
+  puts "Error: Problem downloading Overlay #{id} - #{e.message}"
 end
 
 def directory
